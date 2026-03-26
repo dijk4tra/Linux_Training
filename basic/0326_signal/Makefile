@@ -1,7 +1,9 @@
 SRCS := $(wildcard *.c)
+
 OUTS := $(patsubst %.c,%,$(SRCS))
 CC := gcc
-COM_OP := -Wall -g 
+COM_OP := -Wall -g -pthread
+
 .PHONY: clean rebuild all
 
 all: $(OUTS)                      
