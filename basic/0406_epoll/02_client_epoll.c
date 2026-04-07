@@ -1,5 +1,13 @@
 #include <my_header.h>
 
+void add_epoll_fd(int epfd, int fd){
+    struct epoll_event evt;
+    evt.events = EPOLLIN;
+    evt.data.fd = fd;
+    int ret = epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt);
+    ERROR_CHECK(ret, -1, "add_epoll_fd");
+}
+
 int main(int argc, char *argv[]){                                  
     
     char *ip = "192.168.193.128";
@@ -20,43 +28,51 @@ int main(int argc, char *argv[]){
     //调用connect函数进行三次握手
     int ret = connect(client_fd, (struct sockaddr *)&addr, sizeof(addr));
     ERROR_CHECK(ret, -1, "connect");
+    printf("成功连接到群聊服务器！\n");
+    
+    //创建 epoll 句柄
+    int epfd = epoll_create(1);
+    ERROR_CHECK(epfd, -1, "epoll_create");
 
-    //定义读位图变量
-    fd_set set;
-    FD_ZERO(&set);
+    //将标准输入(键盘)和网络套接字加入 epoll 监听
+    add_epoll_fd(epfd, STDIN_FILENO);
+    add_epoll_fd(epfd, client_fd);
 
     while(1){
-        //将标准输入与用于通信的文件描述符listen_fd添加到读位图中
-        FD_SET(STDIN_FILENO, &set);
-        FD_SET(client_fd, &set);
-
-        int nready = select(10, &set, NULL, NULL, NULL);
-        ERROR_CHECK(nready, -1, "select");
+        struct epoll_event lst[10];    
+        
+        //阻塞等待事件发生
+        int nready = epoll_wait(epfd, lst, 10, -1);
+        ERROR_CHECK(nready, -1, "epoll_wait");
         printf("nready: %d\n", nready);
+        
+        for(int i=0; i<nready; i++){
+            int fd = lst[i].data.fd;
 
-        //客户端自己在终端上进行了输入
-        if(FD_ISSET(STDIN_FILENO, &set))
-        {
-            //通过键盘输入数据，然后存放在buf中
-            char buf[50] = {0};
-            read(STDIN_FILENO, buf, sizeof(buf));
+            //1.客户端在自己的终端上进行了输入
+            if(fd == STDIN_FILENO){
+                char buf[50] = {0};
+                int cnt = read(STDIN_FILENO, buf, sizeof(buf));
 
-            //需要将buf中的数据传输给对端（服务器）
-            send(client_fd, buf, sizeof(buf), 0);
-        }
-
-        //说明连接的服务器发数据给我客户端
-        if(FD_ISSET(client_fd, &set))
-        {
-            char buf[50] = {0};
-            int cnt = recv(client_fd, buf, sizeof(buf), 0);
-            printf("recv cnt: %d\n", cnt);
-            if(0 == cnt)
-            {
-                printf("服务端关闭了\n");
-                break;
+                if(cnt>0){
+                    //将buf中的数据传输给服务器
+                    send(client_fd, buf, cnt, 0);
+                }
             }
-            printf("client recv from server buf : %s\n", buf);
+
+            //2.连接的服务器端向该客户端广播了数据
+            else if(fd == client_fd){
+                char buf[50] = {0};
+                int cnt = recv(client_fd, buf, sizeof(buf), 0);
+
+                if(0 == cnt){
+                    printf("\n[系统提示]: 服务器已经关闭。\n");
+                    close(client_fd);
+                    return 0;
+                }
+
+                printf("收到群消息: %s", buf);
+            }
         }
     }
     
