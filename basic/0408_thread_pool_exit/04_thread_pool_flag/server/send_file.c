@@ -7,6 +7,10 @@ void send_file(int fd){
 
     //将文件名的长度 + 文件名 + 文件内容(文件长度)
     int file_fd = open(file_name, O_RDWR);
+    if (file_fd == -1) {
+        perror("open file error");
+        return; 
+    }    
 
     struct stat st;
     fstat(file_fd, &st);

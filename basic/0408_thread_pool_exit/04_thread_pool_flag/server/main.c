@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
                 //-----接下来基本上就是和队列打交道-----
                 pthread_mutex_lock(&pool.lock);
                 //核心操作就是入队
-                enQueue(&pool.queue, fd);
+                enQueue(&pool.queue, conn_fd);
                 //只要向队列中放了文件描述符conn_fd,
                 //就可以让工作线程取出文件描述符
                 pthread_cond_signal(&pool.cond);

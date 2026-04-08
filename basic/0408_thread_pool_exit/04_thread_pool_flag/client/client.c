@@ -42,7 +42,7 @@ int main(int argc, char *argv[]){
     //调整文件需要的大小
     ftruncate(file_fd, file_size);
     //内存映射
-    char *p = (char *)mmap(NULL, file_size, PROT_READ|PROT_READ, MAP_SHARED, file_fd, 0);
+    char *p = (char *)mmap(NULL, file_size, PROT_READ|PROT_WRITE, MAP_SHARED, file_fd, 0);
     recv(client_fd, p, file_size, MSG_WAITALL);
     //解除内存映射
     munmap(p, file_size);

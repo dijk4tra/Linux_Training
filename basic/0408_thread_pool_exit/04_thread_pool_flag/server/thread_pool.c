@@ -11,6 +11,9 @@ void init_thread_pool(thread_pool_t *pool, int num){
     
     //初始化子线程的数目
     pool->thread_num = num;
+    
+    //将队列内存清零，保证初始状态下 size=0，指针为NULL
+    memset(&pool->queue, 0, sizeof(queue_t));
 
     //互斥锁的初始化
     pthread_mutex_init(&pool->lock, NULL);
