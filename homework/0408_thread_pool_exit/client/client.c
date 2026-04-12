@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
     int file_name_len = 0;
     // MSG_WAITALL: 必须接收满 sizeof(int) 个字节才返回，防止网络拥塞导致只收到一半
     ret = recv(client_fd, &file_name_len, sizeof(int), MSG_WAITALL);
-    printf("服务器接收到的文件名长度: %d\n", file_name_len);
+    printf("从服务器接收到的文件名长度: %d\n", file_name_len);
     
     // 如果服务端返回的长度为0，是服务端约定的错误码，说明服务端没有这个文件
     if (ret == 0 || file_name_len <= 0) {
@@ -62,7 +62,8 @@ int main(int argc, char *argv[]){
     // 接收即将下载的文件大小 (off_t 用于表示大文件的大小)
     off_t file_size = 0;
     recv(client_fd, &file_size, sizeof(off_t), MSG_WAITALL);
-    printf("file_size: %ld \n", file_size);
+    printf("fi
+        le_size: %ld \n", file_size);
     
     // 6. 接收文件内容并写入本地磁盘 (使用 mmap 内存映射提高写入效率)
     // 在本地以读写模式创建（或覆盖）同名文件，权限为 0600 (属主可读可写)

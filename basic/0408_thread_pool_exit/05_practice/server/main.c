@@ -4,18 +4,17 @@
 #include "thread_pool.h"
 #include <my_header.h>
 
-// 全局无名管道，用于父子进程间的信号传递（实现服务端的优雅退出）
 int pipe_fd[2];
 
 // 父进程收到 SIGINT (Ctrl+C) 信号时的处理函数
 void func(int num){
+    printf("num: %d\n", num);
     // 父进程不直接杀死子进程，而是往管道写端(pipe_fd[1])写入一个字节的内容，
     // 通知子进程准备退出。
     write(pipe_fd[1], "1", 1);
 }
 
-int main(int argc, char *argv[]){                                  
-    
+int main(int argc, char *argv[]){
     // 1. 创建无名管道，pipe_fd[0]是读端，pipe_fd[1]是写端
     pipe(pipe_fd);
 
@@ -27,7 +26,7 @@ int main(int argc, char *argv[]){
         wait(NULL); // 阻塞等待子进程退出，回收子进程资源防止产生僵尸进程
         exit(0);    // 子进程死后，父进程也随之退出，整个服务安全终止
     }
-    
+
     // === 下面全是子进程(也就是实际的Server工作进程)的逻辑 ===
 
     // 3. 让子进程脱离原有的前台进程组，成为新进程组的组长
@@ -42,8 +41,7 @@ int main(int argc, char *argv[]){
     init_thread_pool(&pool, 4);
 
     // 5. 初始化网络套接字操作
-    int listen_fd = 0;
-    // 绑定并监听指定的IP和端口
+    int listen_fd;
     init_socket(&listen_fd, "192.168.193.128", "12345");
 
     // 6. 创建 epoll 实例 (IO多路复用)
@@ -61,15 +59,16 @@ int main(int argc, char *argv[]){
         struct epoll_event lst[10];
         // epoll_wait 阻塞等待，直到有事件发生（新连接到来，或者管道有数据可读）
         int nready = epoll_wait(epfd, lst, 10, -1);
+        ERROR_CHECK(nready, -1, "epoll_wait");
         printf("有 %d 个事件就绪\n", nready);
-
+        
         for(int idx=0; idx<nready; ++idx){
             int fd = lst[idx].data.fd;
 
             // 场景 A：管道有数据可读，说明父进程让子进程退出！
             if(fd == pipe_fd[0]){
                 char buf[10] = {0};
-                read(fd, buf, sizeof(buf)); // 读走管道中的数据
+                read(fd, buf, sizeof(buf)); // 读走管道里的数据
                 printf("子进程的main线程收到了父进程的信号\n");
 
                 // === 开始执行优雅退出逻辑 ===
@@ -83,7 +82,7 @@ int main(int argc, char *argv[]){
                 pthread_mutex_unlock(&pool.lock);
 
                 // 回收所有子线程的资源 (阻塞等待它们退出完毕)
-                for(int idx=0; idx<pool.thread_num; ++idx){
+                for(int idx=0; idx<pool.thread_num; idx++){
                     pthread_join(pool.thread_id_arr[idx], NULL);
                 }
                 // 子进程的主线程也退出
@@ -112,8 +111,5 @@ int main(int argc, char *argv[]){
             }
         }
     }
-
-    
     return 0;
 }
-

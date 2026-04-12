@@ -16,6 +16,7 @@ void init_socket(int *fd, char *ip, char *port){
 
     // 3. 填充服务器的网络地址结构体
     struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr)); // 初始化清空内存
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(ip); // 字符串IP转整型网络字节序
     addr.sin_port= htons(atoi(port));     // 字符串端口转整型网络字节序
