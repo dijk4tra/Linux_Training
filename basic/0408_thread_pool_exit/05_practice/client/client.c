@@ -48,7 +48,7 @@ int main(int argc, char *argv[]){
 
     //如果服务器端返回的长度为0,是服务端约定的错误码,说明服务端没有这个文件
     if(ret == 0 || file_name_len == 0){
-        printf("服务端不存在该文件或连接已经断开");
+        printf("服务端不存在该文件或连接已经断开\n");
         close(client_fd);
         return -1;
     }
@@ -74,12 +74,13 @@ int main(int argc, char *argv[]){
     //PROT_READ|PROT_WRITE: 映射区可读可
     char *p = (char *)mmap(NULL, file_size, PROT_READ|PROT_WRITE, MAP_SHARED, file_fd, 0);
     //直接将网络接收到的数据写到内存映射区，底层会自动同步到磁盘，省去了一次系统调用(write)
-    recv(file_fd, p, file_size, MSG_WAITALL);
+    recv(client_fd, p, file_size, MSG_WAITALL);
 
     //解除文件映射,关闭文件描述符
     munmap(p, file_size);
     close(file_fd);
     close(client_fd);
+    printf("下载完成!\n");
 
     return 0;
 }

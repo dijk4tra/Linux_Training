@@ -26,7 +26,6 @@ void send_file(int fd){
     //尝试在服务器打开客户端请求的这个文件
     int file_fd = open(file_name, O_RDONLY);
     if(file_fd == -1){
-        perror("open file failed");
         perror("open file error");
         // 如果文件不存在或无法打开，发送一个长度为 0 的标志给客户端，
         // 客户端拿到长度 0 后就会知道文件不存在，从而安全断开。

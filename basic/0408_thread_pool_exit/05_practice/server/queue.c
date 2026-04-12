@@ -32,7 +32,7 @@ int deQueue(queue_t *pQueue){
     //如果队列中本来就只有一个结点
     //删除之后队列为空,需要将尾结点置为空
     if(pQueue->size == 1){
-        pQueue->end == NULL;
+        pQueue->end = NULL;
     }
 
     pQueue->size--;
